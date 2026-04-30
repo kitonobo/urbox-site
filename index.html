@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Urbox — Mobilier urbain en bois pour Luxembourg</title>
+<meta name="description" content="Urbox — mobilier urbain en bois fabriqué au Luxembourg. Caches-poubelles, abris-vélos, micro-bibliothèques, bacs à fleurs. Modulable, durable, identitaire." />
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['-apple-system','BlinkMacSystemFont','"Helvetica Neue"','Helvetica','Arial','sans-serif'],
+        },
+        colors: {
+          ink:   '#141312',
+          paper: '#FAF6EE',
+          cream: '#F2EBDA',
+          wood:  '#B5824B',
+          woodd: '#8C5E33',
+          woodl: '#E7CFA8',
+          green: '#9DCBA0',
+          greenD:'#6FA478',
+          fire:  '#A33A2E',
+        }
+      }
+    }
+  };
+</script>
+<style>
+  :root { --paper:#FAF6EE; --ink:#141312; --wood:#B5824B; --woodd:#8C5E33; --green:#9DCBA0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: 0.06; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* parallax stage */
+  .parallax-bg {
+    position: absolute; inset: -10%;
+    background-size: cover; background-position: center;
+    will-change: transform;
+  }
+  .parallax-stage { position: relative; overflow: hidden; }
+
+  /* navigation */
+  .nav-blur { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(250,246,238,0.85); }
+
+  /* tickers */
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-track { animation: ticker 40s linear infinite; }
+
+  /* generic reveal */
+  .reveal-on-scroll { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform .8s ease; }
+  .reveal-on-scroll.in { opacity: 1; transform: none; }
+
+  /* config tabs */
+  .tab { cursor: pointer; transition: all .3s ease; }
+  .tab.active { color: var(--ink); }
+  .tab.active .tab-bar { background: var(--ink); width: 100%; }
+  .tab-bar { height:2px; width:0; background:#aaa; transition: width .4s ease; }
+  .fire-badge { background:#A33A2E; color:#FFEFEA; }
+
+  /* numeric kicker */
+  .num { font-weight: 600; font-size: 12px; color: var(--woodd); letter-spacing: .14em; text-transform: uppercase; }
+
+  /* selection */
+  ::selection { background: var(--wood); color: var(--paper); }
+
+  /* large headlines */
+  .hero-h { font-size: clamp(48px, 8vw, 128px); line-height: 0.95; letter-spacing: -0.035em; font-weight: 800; }
+  .display-2 { font-size: clamp(34px, 5.4vw, 80px); line-height: 1; letter-spacing: -0.03em; font-weight: 700; }
+  .display-3 { font-size: clamp(24px, 3vw, 44px); line-height: 1.06; letter-spacing: -0.02em; font-weight: 700; }
+
+  /* subtle hairline */
+  .hairline { height:1px; background: linear-gradient(90deg, transparent 0%, rgba(20,19,18,0.18) 50%, transparent 100%); }
+
+  /* slider */
+  .slider-track { display: flex; transition: transform .65s cubic-bezier(.2,.7,.2,1); }
+  .slide { flex: 0 0 100%; padding: 0 8px; }
+  .slider-dot { width:10px; height:10px; border-radius:999px; background: rgba(20,19,18,0.18); cursor:pointer; transition: all .3s ease; }
+  .slider-dot.active { background: var(--ink); transform: scale(1.2); }
+
+  /* configurator */
+  .slot-card { transition: transform .25s ease, box-shadow .25s ease; cursor: pointer; }
+  .slot-card:hover { transform: translateY(-3px); }
+  .slot-active { box-shadow: 0 0 0 2px var(--ink) inset; }
+  .module-tile {
+    background: linear-gradient(180deg,#C49566 0%, #A07440 100%);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .module-tile::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 8px, rgba(0,0,0,0.18) 8px, rgba(0,0,0,0.18) 9px);
+  }
+  .module-icon {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+  }
+
+  /* benefit cards */
+  .benefit { padding: 24px 0; }
+
+  /* timeline */
+  .timeline-track { position: relative; }
+  .timeline-track::before {
+    content:''; position:absolute; left:11px; top:8px; bottom:8px; width:2px;
+    background: linear-gradient(180deg, var(--wood) 0%, transparent 100%);
+  }
+
+  /* footer */
+  .wood-band { background: linear-gradient(180deg, var(--wood) 0%, var(--woodd) 100%); }
+
+  /* config card */
+  .schema-stage { background: linear-gradient(180deg,#FAF6EE 0%,#F2EBDA 100%); }
+
+  /* slider arrows */
+  .slider-arrow {
+    width: 44px; height: 44px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    cursor: pointer;
+    transition: all .25s ease;
+  }
+  .slider-arrow:hover { background: var(--ink); color: var(--paper); }
+  .slider-arrow svg { width:18px; height:18px; }
+
+  /* line decoration before headlines */
+  .lead-line::before {
+    content: ''; display: inline-block; width: 28px; height: 2px;
+    background: var(--woodd); margin-right: 14px; vertical-align: middle;
+  }
+</style>
+</head>
+<body class="bg-paper text-ink">
+<div class="grain"></div>
+
+<!-- ============== NAV ============== -->
+<header class="fixed top-0 inset-x-0 z-50 nav-blur">
+  <nav class="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-10 py-4">
+    <a href="#top" class="flex items-center gap-2">
+      <img src="assets/logo.png" alt="Urbox" class="h-6 md:h-7" />
+    </a>
+    <ul class="hidden md:flex items-center gap-8 text-sm font-medium">
+      <li><a href="#constat"       class="hover:text-woodd transition">Le constat</a></li>
+      <li><a href="#solution"      class="hover:text-woodd transition">La solution</a></li>
+      <li><a href="#configurer"    class="hover:text-woodd transition">Modulable</a></li>
+      <li><a href="#modeles"       class="hover:text-woodd transition">Les modèles</a></li>
+      <li><a href="#galerie"       class="hover:text-woodd transition">En situation</a></li>
+      <li><a href="#contact"       class="hover:text-woodd transition">Contact</a></li>
+    </ul>
+    <a href="#contact" class="bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-full hover:bg-woodd transition">
+      Nous écrire
+    </a>
+  </nav>
+</header>
+
+<!-- ============== HERO ============== -->
+<section id="top" class="parallax-stage relative min-h-[100svh] flex items-center pt-20">
+  <!-- Green flat background like the PDF cover -->
+  <div class="absolute inset-0 bg-green"></div>
+
+  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 w-full">
+    <div class="reveal-on-scroll">
+      <img src="assets/logo.png" alt="URBOX" class="h-16 md:h-24 mb-10" />
+    </div>
+    <h1 class="hero-h reveal-on-scroll">
+      Mobilier urbain<br/>en bois.
+    </h1>
+    <p class="max-w-2xl text-lg md:text-2xl mt-8 leading-snug text-ink/85 reveal-on-scroll">
+      Caches-poubelles, abris-vélos, micro-bibliothèques, bacs à fleurs.
+      Fabriqué au Luxembourg.
+    </p>
+    <div class="mt-10 flex flex-wrap items-center gap-4 reveal-on-scroll">
+      <a href="#solution" class="bg-ink text-paper px-6 py-3 rounded-full font-semibold hover:bg-woodd transition">Découvrir</a>
+      <a href="#modeles" class="px-6 py-3 rounded-full font-semibold border border-ink/25 hover:border-ink transition bg-paper/40">Voir les modèles</a>
+    </div>
+  </div>
+
+  <div class="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-widest text-ink/55 flex flex-col items-center gap-2">
+    <span>Faites défiler</span>
+    <span class="block w-px h-10 bg-ink/30 animate-pulse"></span>
+  </div>
+</section>
+
+<!-- ============== TICKER ============== -->
+<section class="bg-ink text-paper py-6 overflow-hidden">
+  <div class="ticker-track flex gap-12 whitespace-nowrap text-2xl md:text-4xl font-bold">
+    <div class="flex gap-12 px-6">
+      <span>Caches-poubelles</span><span class="text-wood">·</span>
+      <span>Abris-vélos</span><span class="text-wood">·</span>
+      <span>Micro-bibliothèques</span><span class="text-wood">·</span>
+      <span>Bacs à fleurs</span><span class="text-wood">·</span>
+      <span>Fabriqué au Luxembourg</span><span class="text-wood">·</span>
+    </div>
+    <div class="flex gap-12 px-6" aria-hidden="true">
+      <span>Caches-poubelles</span><span class="text-wood">·</span>
+      <span>Abris-vélos</span><span class="text-wood">·</span>
+      <span>Micro-bibliothèques</span><span class="text-wood">·</span>
+      <span>Bacs à fleurs</span><span class="text-wood">·</span>
+      <span>Fabriqué au Luxembourg</span><span class="text-wood">·</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== LE CONSTAT ============== -->
+<section id="constat" class="relative py-28 md:py-36">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 grid md:grid-cols-12 gap-10">
+    <div class="md:col-span-5 md:sticky md:top-32 self-start reveal-on-scroll">
+      <div class="num mb-3 lead-line">01 — Le constat</div>
+      <h2 class="display-2 mb-6">Trop de poubelles<br/>dans la rue.</h2>
+      <p class="text-lg leading-relaxed text-ink/80 mb-4">
+        Luxembourg soigne son espace public — pierre, signalétique, gestion forestière, végétalisation.
+        Mais à l'échelle de la rue résidentielle, un objet trahit cet effort&nbsp;: la poubelle individuelle, plastique,
+        alignée le long des façades.
+      </p>
+      <p class="text-lg leading-relaxed text-ink/80">
+        Cette présence, banale prise séparément, devient un signal visuel dominant lorsqu'elle se répète.
+      </p>
+    </div>
+
+    <div class="md:col-span-7 grid gap-6">
+      <figure class="reveal-on-scroll">
+        <div class="parallax-stage rounded-2xl overflow-hidden aspect-[4/3]">
+          <div class="parallax-bg" data-speed="-0.2" style="background-image:url('assets/photo_caches.jpg');"></div>
+        </div>
+      </figure>
+      <div class="grid grid-cols-2 gap-6">
+        <figure class="reveal-on-scroll">
+          <div class="parallax-stage rounded-2xl overflow-hidden aspect-[3/4]">
+            <div class="parallax-bg" data-speed="-0.15" style="background-image:url('assets/photo_pavillon.jpg');"></div>
+          </div>
+        </figure>
+        <figure class="reveal-on-scroll">
+          <div class="parallax-stage rounded-2xl overflow-hidden aspect-[3/4]">
+            <div class="parallax-bg" data-speed="-0.25" style="background-image:url('assets/photo_garde.jpg');"></div>
+          </div>
+        </figure>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        <div class="bg-cream rounded-xl p-5 reveal-on-scroll">
+          <div class="num mb-2">A.</div>
+          <div class="text-xl font-bold mb-1">Encombrement</div>
+          <p class="text-sm text-ink/70">Bacs sur trottoirs étroits, alignements peu lisibles.</p>
+        </div>
+        <div class="bg-cream rounded-xl p-5 reveal-on-scroll">
+          <div class="num mb-2">B.</div>
+          <div class="text-xl font-bold mb-1">Hétérogénéité</div>
+          <p class="text-sm text-ink/70">Couleurs, tailles, opérateurs — incohérence visuelle.</p>
+        </div>
+        <div class="bg-cream rounded-xl p-5 reveal-on-scroll">
+          <div class="num mb-2">C.</div>
+          <div class="text-xl font-bold mb-1">Friction urbaine</div>
+          <p class="text-sm text-ink/70">Conflits piétons, poussettes, PMR les jours de collecte.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== LA SOLUTION ============== -->
+<section id="solution" class="relative py-28 md:py-36 bg-cream">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="num mb-3 lead-line">02 — La solution</div>
+    <h2 class="display-2 mb-12 max-w-4xl">Un caisson en bois,<br/>ouvert sur l'avant.</h2>
+
+    <div class="grid md:grid-cols-12 gap-10 items-start">
+      <div class="md:col-span-7 reveal-on-scroll">
+        <div class="rounded-2xl overflow-hidden bg-paper shadow-sm">
+          <img src="assets/urbox_3d_hero.jpg" alt="Urbox 3D — 3 bacs" class="w-full h-auto" />
+        </div>
+        <p class="text-sm text-ink/60 mt-3">L'objet Urbox — vue 3D, configuration 3 bacs.</p>
+      </div>
+
+      <div class="md:col-span-5 space-y-7">
+        <div class="reveal-on-scroll">
+          <p class="text-lg leading-relaxed">
+            Une <strong>structure-cadre commune</strong>, déclinée selon l'usage. Le bois lamellé domine la lecture,
+            la quincaillerie inox reste discrète&nbsp;: la boîte reste <strong>ouverte sur l'avant</strong>, sans porte —
+            accès direct, ventilation naturelle, manipulation immédiate les jours de collecte.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 reveal-on-scroll">
+          <div class="bg-paper rounded-xl p-5 border border-ink/10">
+            <div class="text-xs uppercase tracking-widest text-woodd mb-1">Matière</div>
+            <div class="text-lg font-bold leading-tight">Bois certifié<br/>PEFC / FSC</div>
+          </div>
+          <div class="bg-paper rounded-xl p-5 border border-ink/10">
+            <div class="text-xs uppercase tracking-widest text-woodd mb-1">Traitement</div>
+            <div class="text-lg font-bold leading-tight">Autoclave<br/>classe 3</div>
+          </div>
+          <div class="bg-paper rounded-xl p-5 border border-ink/10">
+            <div class="text-xs uppercase tracking-widest text-woodd mb-1">Lames</div>
+            <div class="text-lg font-bold leading-tight">Pin / mélèze<br/>20 × 70 mm</div>
+          </div>
+          <div class="bg-paper rounded-xl p-5 border border-ink/10">
+            <div class="text-xs uppercase tracking-widest text-woodd mb-1">Sécurité+</div>
+            <div class="text-lg font-bold leading-tight">Anti-feu<br/>Classe A1</div>
+          </div>
+        </div>
+
+        <blockquote class="reveal-on-scroll border-l-2 border-wood pl-5 italic text-lg text-ink/75">
+          Caches-poubelles, abris-vélos, micro-bibliothèques, bacs à fleurs —
+          la même grammaire de bois pour quatre usages civiques.
+        </blockquote>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== MODULABLE / CONFIGURATEUR ============== -->
+<section id="configurer" class="relative py-28 md:py-36 bg-cream">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="num mb-3 lead-line">03 — Modulable</div>
+    <h2 class="display-2 mb-4 max-w-4xl">Une box.<br/>Ou plusieurs, clipsées.</h2>
+    <p class="text-lg text-ink/75 max-w-3xl mb-12">
+      Chaque Urbox peut être commandée en module unitaire. Plusieurs modules se clipsent
+      côte à côte, sans visserie visible, pour composer la configuration souhaitée.
+    </p>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-16">
+      <figure class="reveal-on-scroll">
+        <div class="rounded-2xl overflow-hidden bg-paper shadow-sm">
+          <img src="assets/modular_1.jpg" alt="Module unitaire" class="w-full h-auto" />
+        </div>
+        <figcaption class="text-sm text-ink/60 mt-3">Module unitaire — 1 bac.</figcaption>
+      </figure>
+      <figure class="reveal-on-scroll">
+        <div class="rounded-2xl overflow-hidden bg-paper shadow-sm">
+          <img src="assets/modular_3.jpg" alt="Trois modules clipsés" class="w-full h-auto" />
+        </div>
+        <figcaption class="text-sm text-ink/60 mt-3">Trois modules clipsés — bac noir, bac bleu, dépôt sac jaune.</figcaption>
+      </figure>
+    </div>
+
+    <p class="text-base text-ink/70 max-w-3xl mt-2">
+      Une plateforme de configuration en ligne sera mise en place pour personnaliser la commande
+      — choix du nombre de modules et des fonctions associées (poubelles, vélo, livres, fleurs, dépôt solidaire) —
+      et obtenir un devis estimatif immédiat.
+    </p>
+  </div>
+</section>
+
+<!-- ============== LES MODÈLES ============== -->
+<section id="modeles" class="relative py-28 md:py-36">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="num mb-3 lead-line">04 — Les modèles</div>
+    <h2 class="display-2 mb-4 max-w-4xl">Quatre tailles<br/>standards.</h2>
+    <p class="text-lg text-ink/70 max-w-2xl mb-12">
+      Cliquez sur un onglet pour explorer chaque modèle&nbsp;: dimensions, capacité, options.
+    </p>
+
+    <div class="flex flex-wrap gap-x-8 gap-y-4 mb-10 border-b border-ink/10">
+      <div class="tab active py-3" data-target="cfg-1">
+        <div class="text-xl md:text-2xl font-bold text-ink/40 hover:text-ink transition">3 bacs</div>
+        <div class="tab-bar mt-2"></div>
+      </div>
+      <div class="tab py-3" data-target="cfg-2">
+        <div class="text-xl md:text-2xl font-bold text-ink/40 hover:text-ink transition">3 bacs Sécurité+</div>
+        <div class="tab-bar mt-2"></div>
+      </div>
+      <div class="tab py-3" data-target="cfg-3">
+        <div class="text-xl md:text-2xl font-bold text-ink/40 hover:text-ink transition">2 bacs</div>
+        <div class="tab-bar mt-2"></div>
+      </div>
+      <div class="tab py-3" data-target="cfg-4">
+        <div class="text-xl md:text-2xl font-bold text-ink/40 hover:text-ink transition">Vélo</div>
+        <div class="tab-bar mt-2"></div>
+      </div>
+    </div>
+
+    <div class="schema-stage rounded-3xl p-6 md:p-10 border border-ink/5">
+      <div class="cfg-panel" data-id="cfg-1">
+        <div class="grid md:grid-cols-12 gap-8 items-center">
+          <div class="md:col-span-7"><img src="assets/plan_3bacs_std.jpg" alt="Plan 3 bacs" class="rounded-xl shadow-md w-full" /></div>
+          <div class="md:col-span-5 space-y-5">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-woodd mb-2">Configuration de base</div>
+              <h3 class="text-3xl md:text-4xl font-bold">3 bacs</h3>
+            </div>
+            <dl class="grid grid-cols-2 gap-y-3 text-sm">
+              <dt class="text-ink/60">Encombrement</dt><dd class="font-medium">155 × 65 × 105 cm</dd>
+              <dt class="text-ink/60">Capacité</dt><dd class="font-medium">3 × 240 L (EN 840)</dd>
+              <dt class="text-ink/60">Usage</dt><dd class="font-medium">Maisons, voirie</dd>
+              <dt class="text-ink/60">Anti-feu</dt><dd class="font-medium">—</dd>
+            </dl>
+            <p class="text-ink/75">Tri 3 flux. Façade ouverte, manipulation directe par l'opérateur.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-panel hidden" data-id="cfg-2">
+        <div class="grid md:grid-cols-12 gap-8 items-center">
+          <div class="md:col-span-7"><img src="assets/plan_3bacs_fire.jpg" alt="Plan 3 bacs Sécurité+" class="rounded-xl shadow-md w-full" /></div>
+          <div class="md:col-span-5 space-y-5">
+            <div class="flex items-center gap-3">
+              <span class="fire-badge text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full">Anti-feu Classe A1</span>
+            </div>
+            <h3 class="text-3xl md:text-4xl font-bold">3 bacs Sécurité+</h3>
+            <dl class="grid grid-cols-2 gap-y-3 text-sm">
+              <dt class="text-ink/60">Encombrement</dt><dd class="font-medium">155 × 65 × 105 cm</dd>
+              <dt class="text-ink/60">Capacité</dt><dd class="font-medium">3 × 240 L</dd>
+              <dt class="text-ink/60">Panneaux</dt><dd class="font-medium">Anti-feu A1, ép. 12 mm</dd>
+              <dt class="text-ink/60">Norme</dt><dd class="font-medium">EN 13501-1 (incombustible)</dd>
+            </dl>
+            <p class="text-ink/75">Pour cours intérieures, immeubles collectifs, locaux mitoyens.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-panel hidden" data-id="cfg-3">
+        <div class="grid md:grid-cols-12 gap-8 items-center">
+          <div class="md:col-span-7"><img src="assets/plan_2bacs.jpg" alt="Plan 2 bacs" class="rounded-xl shadow-md w-full" /></div>
+          <div class="md:col-span-5 space-y-5">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-woodd mb-2">Format compact</div>
+              <h3 class="text-3xl md:text-4xl font-bold">2 bacs</h3>
+            </div>
+            <dl class="grid grid-cols-2 gap-y-3 text-sm">
+              <dt class="text-ink/60">Encombrement</dt><dd class="font-medium">105 × 65 × 105 cm</dd>
+              <dt class="text-ink/60">Capacité</dt><dd class="font-medium">2 × 240 L</dd>
+              <dt class="text-ink/60">Usage</dt><dd class="font-medium">Petits collectifs, rues étroites</dd>
+              <dt class="text-ink/60">Anti-feu</dt><dd class="font-medium">Optionnel — A1, 12 mm</dd>
+            </dl>
+            <p class="text-ink/75">Format réduit pour espaces résidentiels où le trottoir est étroit.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-panel hidden" data-id="cfg-4">
+        <div class="grid md:grid-cols-12 gap-8 items-center">
+          <div class="md:col-span-7"><img src="assets/plan_velo.jpg" alt="Plan Vélo" class="rounded-xl shadow-md w-full" /></div>
+          <div class="md:col-span-5 space-y-5">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-woodd mb-2">Multi-usages</div>
+              <h3 class="text-3xl md:text-4xl font-bold">Vélo</h3>
+            </div>
+            <dl class="grid grid-cols-2 gap-y-3 text-sm">
+              <dt class="text-ink/60">Encombrement</dt><dd class="font-medium">180 × 65 × 105 cm</dd>
+              <dt class="text-ink/60">Capacité</dt><dd class="font-medium">1 vélo + tablette haute</dd>
+              <dt class="text-ink/60">Usage</dt><dd class="font-medium">Devanture, abord d'école, place</dd>
+              <dt class="text-ink/60">Tablette</dt><dd class="font-medium">Livres ou bac à fleurs</dd>
+            </dl>
+            <p class="text-ink/75">Un vélo abrité, des livres à partager, des fleurs au-dessus.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== POUR LA VILLE ============== -->
+<section id="ville" class="relative py-28 md:py-36">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="num mb-3 lead-line">05 — Pour Luxembourg</div>
+    <h2 class="display-2 max-w-4xl mb-12">Bénéfices<br/>pour la Ville.</h2>
+
+    <div class="grid md:grid-cols-2 gap-x-12 gap-y-8 max-w-6xl">
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">01</div>
+        <div class="text-2xl font-bold mb-2">Image et nation branding</div>
+        <p class="text-ink/75">Un mobilier civique en bois, cohérent et photographiable, qui prolonge la signature de soin urbain de la Ville.</p>
+      </div>
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">02</div>
+        <div class="text-2xl font-bold mb-2">Cadre de vie</div>
+        <p class="text-ink/75">Réduction immédiate de la pollution visuelle des bacs. Sentiment d'ordre dans la rue résidentielle.</p>
+      </div>
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">03</div>
+        <div class="text-2xl font-bold mb-2">Cohérence multi-usages</div>
+        <p class="text-ink/75">Une seule famille d'objets pour caches-poubelles, abris-vélos, boîtes à livres, bacs à fleurs.</p>
+      </div>
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">04</div>
+        <div class="text-2xl font-bold mb-2">Mobilité douce</div>
+        <p class="text-ink/75">Stationnement vélo qualitatif, en cohérence avec le Plan National Mobilité.</p>
+      </div>
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">05</div>
+        <div class="text-2xl font-bold mb-2">Inclusion et lien social</div>
+        <p class="text-ink/75">Boîtes à livres, dépôts solidaires, bacs floraux — gestes d'appropriation citoyenne.</p>
+      </div>
+      <div class="benefit reveal-on-scroll">
+        <div class="num mb-2">06</div>
+        <div class="text-2xl font-bold mb-2">Filière locale et bois durable</div>
+        <p class="text-ink/75">Bois certifié PEFC/FSC, fabrication au Luxembourg, économie circulaire régionale.</p>
+      </div>
+      <div class="benefit reveal-on-scroll md:col-span-2">
+        <div class="num mb-2">07</div>
+        <div class="text-2xl font-bold mb-2">Démarche graduelle et réversible</div>
+        <p class="text-ink/75 max-w-3xl">Pose sans génie civil lourd dans la majorité des cas — pilote en deux rues, déploiement par secteurs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== ÉTAPES ============== -->
+<section class="py-28 bg-ink text-paper">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="num mb-3 lead-line" style="color:#E7CFA8">06 — Étapes</div>
+    <h2 class="display-2 max-w-4xl mb-16">Comment on travaille<br/>ensemble.</h2>
+
+    <div class="relative timeline-track pl-10 space-y-12 max-w-3xl">
+      <div class="relative reveal-on-scroll">
+        <div class="absolute -left-10 top-1 w-6 h-6 rounded-full bg-wood ring-4 ring-ink"></div>
+        <div class="text-xs uppercase tracking-widest text-wood mb-2">Étape 1 — Aujourd'hui</div>
+        <h3 class="text-3xl font-bold mb-3">Accord de principe</h3>
+        <p class="text-paper/75 leading-relaxed">Validation par le Service Urbanisme. Mise en relation avec Voirie, Hygiène, Bâtiments. Calage des contraintes techniques.</p>
+      </div>
+      <div class="relative reveal-on-scroll">
+        <div class="absolute -left-10 top-1 w-6 h-6 rounded-full bg-wood ring-4 ring-ink"></div>
+        <div class="text-xs uppercase tracking-widest text-wood mb-2">Étape 2 — Pilote (12 mois)</div>
+        <h3 class="text-3xl font-bold mb-3">10 à 20 unités, 1 à 2 rues témoins</h3>
+        <p class="text-paper/75 leading-relaxed">Bonnevoie, Limpertsberg ou Pfaffenthal. Mesure d'usage, retours riverains, ajustements design.</p>
+      </div>
+      <div class="relative reveal-on-scroll">
+        <div class="absolute -left-10 top-1 w-6 h-6 rounded-full bg-wood ring-4 ring-ink"></div>
+        <div class="text-xs uppercase tracking-widest text-wood mb-2">Étape 3 — Déploiement</div>
+        <h3 class="text-3xl font-bold mb-3">5 à 10 rues / an</h3>
+        <p class="text-paper/75 leading-relaxed">Si pilote concluant&nbsp;: extension par secteurs. Industrialisation locale. Fonctions civiques complémentaires (livres, fleurs, dépôts).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== URBOX DANS LA RUE — slider simple 2 photos ============== -->
+<section id="galerie" class="py-28 md:py-36">
+  <div class="max-w-5xl mx-auto px-6 lg:px-10 text-center">
+    <h2 class="display-2 mb-12">Urbox dans la rue.</h2>
+
+    <div id="street-slider" class="relative">
+      <!-- slides container, both images stacked, fade-cross between them -->
+      <div class="relative w-full max-w-2xl mx-auto" style="aspect-ratio: 1792 / 2400;">
+        <div class="street-slide absolute inset-0 transition-opacity duration-700">
+          <img src="assets/street_1.jpg" alt="Urbox dans la rue — vue 1" class="w-full h-full object-contain rounded-2xl" />
+        </div>
+        <div class="street-slide absolute inset-0 transition-opacity duration-700 opacity-0 pointer-events-none">
+          <img src="assets/street_2.jpg" alt="Urbox dans la rue — vue 2" class="w-full h-full object-contain rounded-2xl" />
+        </div>
+      </div>
+
+      <!-- arrows -->
+      <button id="street-prev" class="slider-arrow absolute left-2 md:left-8 top-1/2 -translate-y-1/2 z-10" aria-label="Précédent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button id="street-next" class="slider-arrow absolute right-2 md:right-8 top-1/2 -translate-y-1/2 z-10" aria-label="Suivant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+      <!-- dots -->
+      <div class="flex items-center justify-center gap-2 mt-6">
+        <span class="street-dot slider-dot" aria-label="Image 1"></span>
+        <span class="street-dot slider-dot" aria-label="Image 2"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== CONTACT ============== -->
+<section id="contact" class="py-28 md:py-36 bg-cream">
+  <div class="max-w-4xl mx-auto px-6 lg:px-10 text-center">
+    <div class="num mb-3 lead-line inline-block">08 — Contact</div>
+    <h2 class="display-2 mb-8">Parlons-en.</h2>
+    <p class="text-lg text-ink/75 max-w-2xl mx-auto mb-10 leading-relaxed">
+      Pour toute question, demande de précision technique, ou suite à donner.
+      Je reste à votre disposition pour présenter le projet en réunion ou fournir
+      un dossier technique détaillé.
+    </p>
+
+    <div class="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto text-left">
+      <div class="bg-paper rounded-2xl p-6 border border-ink/10">
+        <div class="text-xs uppercase tracking-widest text-woodd mb-2">Adresse</div>
+        <div class="font-medium leading-relaxed">14, rue Auguste Letellier<br/>L-1932 Luxembourg</div>
+      </div>
+      <div class="bg-paper rounded-2xl p-6 border border-ink/10">
+        <div class="text-xs uppercase tracking-widest text-woodd mb-2">Joindre Julien Renault</div>
+        <a href="mailto:kito.nobo@gmail.com" class="block font-medium hover:text-woodd transition">kito.nobo@gmail.com</a>
+        <a href="tel:+352661952149" class="block font-medium hover:text-woodd transition">+352 661 952 149</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== FOOTER ============== -->
+<footer class="wood-band text-paper">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-14">
+    <div class="grid md:grid-cols-12 gap-10 items-end">
+      <div class="md:col-span-7">
+        <img src="assets/logo.png" alt="URBOX" class="h-8 md:h-10 mb-4 invert" />
+        <p class="opacity-90 max-w-xl">Mobilier urbain en bois, conçu et fabriqué au Luxembourg. Caches-poubelles, abris-vélos, micro-bibliothèques, bacs à fleurs.</p>
+      </div>
+      <div class="md:col-span-5 grid grid-cols-2 gap-6 text-sm">
+        <div>
+          <div class="opacity-70 mb-2 uppercase tracking-widest text-xs">Contact</div>
+          <a href="mailto:kito.nobo@gmail.com" class="block hover:underline">kito.nobo@gmail.com</a>
+          <a href="tel:+352661952149" class="block hover:underline">+352 661 952 149</a>
+          <div>14, rue Auguste Letellier<br/>L-1932 Luxembourg</div>
+        </div>
+        <div>
+          <div class="opacity-70 mb-2 uppercase tracking-widest text-xs">Naviguer</div>
+          <a href="#solution" class="block hover:underline">La solution</a>
+          <a href="#modeles" class="block hover:underline">Les modèles</a>
+          <a href="#configurer" class="block hover:underline">Configurer</a>
+          <a href="#galerie" class="block hover:underline">En situation</a>
+        </div>
+      </div>
+    </div>
+    <div class="mt-10 pt-6 border-t border-paper/20 flex flex-wrap items-center justify-between gap-4 text-xs opacity-80">
+      <div>© 2026 Urbox — Julien Renault</div>
+      <div>Fait à Luxembourg, en bois.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ============ GSAP / Parallax / Reveal ============
+    if (window.gsap && window.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.utils.toArray('.parallax-stage').forEach(stage => {
+        const bg = stage.querySelector('.parallax-bg');
+        if (!bg) return;
+        const speed = parseFloat(bg.dataset.speed || '-0.2');
+        gsap.fromTo(bg, { yPercent: speed * 50 }, {
+          yPercent: -speed * 50,
+          ease: 'none',
+          scrollTrigger: { trigger: stage, start: 'top bottom', end: 'bottom top', scrub: true }
+        });
+      });
+
+      gsap.utils.toArray('.reveal-on-scroll').forEach(el => {
+        ScrollTrigger.create({ trigger: el, start: 'top 85%', onEnter: () => el.classList.add('in'), once: true });
+      });
+
+      gsap.utils.toArray('.benefit').forEach((el, i) => {
+        gsap.fromTo(el, { y: 40, opacity: 0 }, {
+          y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+          delay: (i % 2) * 0.08,
+        });
+      });
+    } else {
+      document.querySelectorAll('.reveal-on-scroll').forEach(e => e.classList.add('in'));
+    }
+
+    // ============ Tabs (modèles) ============
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.cfg-panel');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const target = t.dataset.target;
+      panels.forEach(p => {
+        if (p.dataset.id === target) {
+          p.classList.remove('hidden');
+          if (window.gsap) gsap.fromTo(p, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+        } else {
+          p.classList.add('hidden');
+        }
+      });
+    }));
+
+    // ============ Smooth anchor offset ============
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const id = a.getAttribute('href');
+        if (id.length > 1) {
+          const t = document.querySelector(id);
+          if (t) {
+            e.preventDefault();
+            const y = t.getBoundingClientRect().top + window.scrollY - 70;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }
+      });
+    });
+
+    // ============ STREET SLIDER (2 photos vertical, with arrows) ============
+    const streetSlides = document.querySelectorAll('#street-slider .street-slide');
+    const streetDots = document.querySelectorAll('#street-slider .street-dot');
+    const streetPrev = document.getElementById('street-prev');
+    const streetNext = document.getElementById('street-next');
+    let streetIdx = 0;
+
+    function goStreet(i) {
+      streetIdx = (i + streetSlides.length) % streetSlides.length;
+      streetSlides.forEach((s, idx) => {
+        s.classList.toggle('opacity-100', idx === streetIdx);
+        s.classList.toggle('opacity-0', idx !== streetIdx);
+        s.classList.toggle('pointer-events-none', idx !== streetIdx);
+      });
+      streetDots.forEach((d, idx) => d.classList.toggle('active', idx === streetIdx));
+    }
+    if (streetPrev && streetNext) {
+      streetPrev.addEventListener('click', () => goStreet(streetIdx - 1));
+      streetNext.addEventListener('click', () => goStreet(streetIdx + 1));
+      streetDots.forEach((d, i) => d.addEventListener('click', () => goStreet(i)));
+      goStreet(0);
+    }
+
+  });
+</script>
+</body>
+</html>
